@@ -1,4 +1,4 @@
-from .models import  Conversation, ConversationParticipant, Message
+from .models import  Conversation, ConversationParticipant, Message, Notification
 from rest_framework import serializers
 from django.contrib.auth.models import User
 
@@ -66,20 +66,6 @@ class SimpleUserSerializer(serializers.ModelSerializer):
 
 
 
-# class ChatMessageSerializer(serializers.ModelSerializer):
-#     timestamp = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S",read_only=True)
-
-#     class Meta:
-#         model = ChatMessage
-#         fields = ['id','sent_by','text_message','timestamp']
-#         read_only_fields = ['timestamp']
-    
-#     def validate_text_message(self,value):
-#         if len(value)>200:
-#             raise serializers.ValidationError("Text Message should be less than 200 letters.")
-#         return value
-    
-
 
 class ParticipantSerializer(serializers.ModelSerializer):
     user = SimpleUserSerializer()
@@ -98,7 +84,9 @@ class MessageSerializer(serializers.ModelSerializer):
         model = Message
         fields = ["id", "sender", "content", "created_at","conversation"]
         
-
+    def validate_content(self,value):
+        if len(value)>200:
+            raise serializers.ValidationError("Text Message should be less than 200 letters.")
 
 
 class ConversationSerializer(serializers.ModelSerializer):
@@ -122,3 +110,12 @@ class ConversationSerializer(serializers.ModelSerializer):
             return MessageSerializer(message).data
 
         return None
+    
+class NotificationSerializer(serializers.ModelSerializer):
+    created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S",read_only=True)
+    sender = SimpleUserSerializer()
+    receiver = SimpleUserSerializer()
+
+    class Meta:
+        model = Notification
+        fields = ['id','sender','receiver','message','notification_type','is_read','created_at']

@@ -31,8 +31,8 @@ class Message(models.Model):
 
 class Notification(models.Model):
     sender = models.ForeignKey(User, on_delete=models.CASCADE,related_name="sent_notifications")
-    receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name="received_notifications")
+    receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name="received_notifications", null=True)
+    message = models.TextField(max_length=200)
     notification_type = models.TextField(max_length=100,default='messages')
-    messsage = models.TextField(max_length=200)
     is_read= models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

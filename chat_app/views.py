@@ -1,8 +1,8 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from .models import  Conversation, ConversationParticipant, Message
-from .serializers import  SignUpSerializer, UserSerializer, ConversationSerializer,SimpleUserSerializer, ParticipantSerializer, MessageSerializer
+from .models import  Conversation, ConversationParticipant, Message, Notification
+from .serializers import  SignUpSerializer, UserSerializer, ConversationSerializer,SimpleUserSerializer, ParticipantSerializer, MessageSerializer, NotificationSerializer
 from django.contrib.auth.models import User
 from .pagination import UserPagination
 from django.shortcuts import get_object_or_404
@@ -137,7 +137,7 @@ def get_direct_message(request,conv_id):
         )
 
     messages = Message.objects.filter(conversation=conversation).order_by("created_at")
-    
+
     serializer = MessageSerializer(messages,many=True)
 
     return Response(serializer.data,status=201)
@@ -173,9 +173,10 @@ def get_all_users(request):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def create_personal_chat(request, conv_id):
+def create_personal_chat(request, user_id):
 
-    user = User.objects.get(id=conv_id)
+    user = User.objects.get(id=user_id)
+
     convo = (
         Conversation.objects
         .filter(participants__user=user)
@@ -204,3 +205,14 @@ def create_personal_chat(request, conv_id):
 
         serializer = ConversationSerializer(new_convo)
         return Response(serializer.data)
+    
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_notifications(request,user_id):
+    all_notif = Notification.objects.filter(receiver=request.user).order_by('-created_at')
+    if all_notif:
+        serializer = NotificationSerializer(all_notif,many=True)
+        return Response(serializer.data,status=200)
+    
+    return Response({"message":"No Notifications Yet!"},status=200)

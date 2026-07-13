@@ -38,7 +38,6 @@ const Login = () => {
             toast.success("Logged in successfully!")
             localStorage.setItem("access_token", data.access)
             localStorage.setItem("refresh_token", data.refresh)
-            setToken(data.access)
             navigate("/all-users")
 
         } catch (error) {

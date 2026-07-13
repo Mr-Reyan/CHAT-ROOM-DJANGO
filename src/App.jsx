@@ -5,8 +5,7 @@ import Login from './pages/Login';
 import Navbar from './components/Navbar';
 import ProtectedRoute from "./components/ProtectedRoute";
 import AllUsers from './pages/AllUsers';
-import DirectMessage from './pages/DirectMessage';
-import NotificationCenter from './components/NotificationCenter';
+import DirectMessage from './pages/DirectMessage'
 
 function App() {
 
@@ -18,7 +17,6 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/all-users" element={<AllUsers/>} />
-        <Route path="/notif" element={<NotificationCenter/>} />
 
         <Route path='/' element={<ProtectedRoute />}> 
           {/* <Route path="/chat" element={<ChatBox />} /> */}

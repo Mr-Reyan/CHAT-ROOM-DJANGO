@@ -61,3 +61,22 @@ export async function openChat(conv_id, setMessages) {
         toast.error("Error opening Chat!", error)
     }
 }
+
+
+export async function getNotif(user_id,setNotification) {
+    try{
+        const response = await fetch(`http://127.0.0.1:8000/api/notifications/${user_id}/`,{
+            headers:{
+                'Content-Type':'application/json',
+                'Authorization':`Bearer ${getAccessToken()}`
+            }
+        })
+        const data = await response.json()
+        console.log(data)
+        
+        setNotification(data)
+    } catch(error){
+        toast.error("Error getting Notifications",error)
+    }
+
+}

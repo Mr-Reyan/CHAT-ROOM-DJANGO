@@ -6,20 +6,20 @@ import TextMessages from '../components/TextMessages';
 import Button from '../components/Button';
 import { getAccessToken, refreshAccessToken } from '../utils/auth';
 import { toast } from 'react-toastify';
-import { getSocket } from '../utils/websocket';
-
+import { chatSocket } from '../utils/websocket';
 const DirectMessage = () => {
     const bottomRef = useRef(null)
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
-    const { user } = useUserContext()
+    const { user, NotifSocketRef } = useUserContext()
 
     const navigate = useNavigate()
     const lastMessageId = useRef(null)
 
     const { conv_id } = useParams()
 
-    const socketRef = useRef(null);
+    const socketRef = useRef(null)
+
     useEffect(() => {
 
         if (!conv_id) return
@@ -27,7 +27,7 @@ const DirectMessage = () => {
 
             await openChat(conv_id, setMessages)
 
-            socketRef.current = getSocket(conv_id)
+            socketRef.current = chatSocket(conv_id)
 
             socketRef.current.onmessage = (event) => {
                 const data = JSON.parse(event.data)
@@ -58,14 +58,26 @@ const DirectMessage = () => {
         }
     }, [messages]);
 
-    const handleSendMessage =  (e) => {
+    const handleSendMessage = (e) => {
         e.preventDefault()
-        socketRef.current.send(
+        socketRef.current?.send(
             JSON.stringify({
                 message: newMessage,
             })
         )
-        setNewMessage("")
+        if (NotifSocketRef.current?.readyState === WebSocket.OPEN) {
+            NotifSocketRef.current.send(
+                JSON.stringify({
+                    sender_id: user.id,
+                    conv_id:conv_id,
+                    message: newMessage
+                })
+            )
+        setNewMessage('')
+        } else {
+            console.log("NOT OPEN!");
+            
+        }
     }
 
     return (

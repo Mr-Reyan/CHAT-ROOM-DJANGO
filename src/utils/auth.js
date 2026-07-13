@@ -1,6 +1,6 @@
 export const saveToken = (token) => {
     localStorage.setItem("access_token",token.access)
-    localStorage.setItem("refresh_token",token.refresh)
+    localStorage.setItem("refresh_token",token.refresh )
 }
 
 export const removeToken = () => {

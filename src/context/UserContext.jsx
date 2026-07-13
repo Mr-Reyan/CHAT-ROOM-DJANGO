@@ -1,22 +1,38 @@
+
+import React, { useRef } from "react";
 import { createContext, useContext, useEffect, useState } from "react";
 import { toast } from "react-toastify";
+import { getAccessToken, refreshAccessToken } from "../utils/auth";
 
 const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
     const [user, setUser] = useState(null);
-    const [token, setToken] = useState(localStorage.getItem("access_token") || "");
     const [users, setUsers] = useState([])
-
+    const [notification, setNotification] = useState([])
+    const [notifCount, setNotifCount] = useState(0)
+    const NotifSocketRef = useRef(null)
     const getUser = async ()=>{
         try{
 
-            const response = await fetch("http://127.0.0.1:8000/api/current_user/", {
+            let response = await fetch("http://127.0.0.1:8000/api/current_user/", {
                 headers: {
-                    Authorization: `Bearer ${token}`,
+                    Authorization: `Bearer ${getAccessToken()}`,
                 },
             })
+            if(response.status == 401){
+                await refreshAccessToken()
+                localStorage.setItem('access_token',newToken)
+                
+                let response = await fetch("http://127.0.0.1:8000/api/current_user/", {
+                    headers: {
+                        Authorization: `Bearer ${getAccessToken()}`,
+                    },
+                })
+
+            }
             const data = await response.json()
+            
             if(!response.ok){
                 toast.error("Error occured while getting user: ",data);
 
@@ -31,13 +47,20 @@ export const AppProvider = ({ children }) => {
         }
 
     }
+    const firstRender = useRef(true);
+
+    useEffect(() => {
+        
+        setNotifCount(notification.length);
+
+    }, [notification]);
 
     useEffect(() => {
 
-        if(!token){return}
+        if(!getAccessToken()){return}
         getUser()
 
-    }, [token])
+    }, [getAccessToken()])
 
 
 
@@ -46,10 +69,14 @@ export const AppProvider = ({ children }) => {
             value={{
                 user,
                 setUser,
-                token,
-                setToken,
+                // token,
+                // setToken,
                 users,
-                setUsers
+                setUsers,
+                notification,
+                setNotification,
+                NotifSocketRef,
+                notifCount
             }}
         >
             {children}

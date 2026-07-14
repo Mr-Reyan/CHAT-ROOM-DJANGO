@@ -59,7 +59,7 @@ const AllUsers = () => {
                         key={user.id}
                         className="flex relative items-center gap-3 p-4 hover:bg-gray-100 cursor-pointer transition-colors border-b border-gray-100"
                     >
-                        <div className='absolute right-1/10 text-white bg-indigo-600 p-4 rounded-full text-sm w-6 h-6 flex justify-center items-center'>0</div>
+                        {/* <div className='absolute right-1/10 text-white bg-indigo-600 p-4 rounded-full text-sm w-6 h-6 flex justify-center items-center'>0</div> */}
                         <div className="h-12 w-12 rounded-full bg-indigo-500 text-white flex items-center justify-center font-semibold">
                             {user.username[0].toUpperCase()}
                         </div>

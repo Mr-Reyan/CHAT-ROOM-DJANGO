@@ -7,16 +7,27 @@ import Button from '../components/Button';
 import { getAccessToken, refreshAccessToken } from '../utils/auth';
 import { toast } from 'react-toastify';
 import { chatSocket } from '../utils/websocket';
+import { useLocation } from "react-router-dom";
+
 const DirectMessage = () => {
+    const { user, NotifSocketRef, exportId,exportStatus,setExportStatus } = useUserContext()
+
+
     const bottomRef = useRef(null)
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
-    const { user, NotifSocketRef } = useUserContext()
+    const [downloading, setDownloading] = useState(false)
 
     const navigate = useNavigate()
     const lastMessageId = useRef(null)
 
     const { conv_id } = useParams()
+
+    const location = useLocation()
+
+    const messageId = location.state?.messageId
+
+
 
     const socketRef = useRef(null)
 
@@ -45,6 +56,7 @@ const DirectMessage = () => {
 
     // Auto scroll to Bottom of Page.
     useEffect(() => {
+        if (messageId) return
         if (!messages.length) return;
 
         const currentLastId = messages[messages.length - 1].id;
@@ -58,42 +70,127 @@ const DirectMessage = () => {
         }
     }, [messages]);
 
+
     const handleSendMessage = (e) => {
-        e.preventDefault()
+        e.preventDefault();
+
         socketRef.current?.send(
             JSON.stringify({
                 message: newMessage,
             })
         )
-        if (NotifSocketRef.current?.readyState === WebSocket.OPEN) {
-            NotifSocketRef.current.send(
-                JSON.stringify({
-                    sender_id: user.id,
-                    conv_id:conv_id,
-                    message: newMessage
-                })
+
+        setNewMessage("")
+    };
+
+
+    useEffect(() => {
+        if (!messageId) return;
+
+        const element = document.getElementById(`message-${messageId}`);
+
+        if (element) {
+            element.scrollIntoView({
+                behavior: "smooth",
+                block: "center"
+            });
+        }
+    }, [messages, messageId])
+
+
+    const generateChat = async () => {
+        try {
+            const response = await fetch(`http://127.0.0.1:8000/api/chat/${conv_id}/pdf/`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${getAccessToken()}`
+                }
+            }
             )
-        setNewMessage('')
-        } else {
-            console.log("NOT OPEN!");
-            
+
+            if (!response.ok) {
+                throw new Error("Failed to download PDF")
+            }
+
+            setDownloading(true)
+            setExportStatus('generating')
+
+            console.log(response)
+
+
+        } catch (error) {
+            console.error(error)
         }
     }
 
+    const downloadChat = async () => {
+        try {
+            const response = await fetch(`http://127.0.0.1:8000/api/chat/export/${exportId}/pdf/`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${getAccessToken()}`
+                }
+            }
+            )
+
+            if (!response.ok) {
+                throw new Error("Failed to download PDF")
+            }
+            const blob = await response.blob();
+
+            const url = window.URL.createObjectURL(blob);
+
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "chat.pdf";
+            a.click();
+
+            window.URL.revokeObjectURL(url);
+
+            setDownloading(true)
+
+            console.log(response)
+
+
+        } catch (error) {
+            console.error(error)
+        }
+    }
+
+
+
+
     return (
 
-        <div className="flex flex-col h-[80%] my-auto  max-w-2xl rounded-b-lg mx-auto bg-gray-50 border-x border-gray-200">
+        <div className="flex flex-col h-[80%] my-auto  min-w-2xl rounded-b-lg mx-auto bg-gray-50 border-x border-gray-200">
 
 
 
 
             <header className="p-4 bg-indigo-600 text-white rounded-t-lg flex justify-between items-center shadow-md">
                 <h1 className="text-xl font-bold tracking-wide">CHAT ROOM</h1>
+                {exportStatus === "idle" && (
+                    <img onClick = { generateChat }
+                        width = "25"
+                        height = "25"
+                        className = ' hover:bg-green-600 bg-green-500 p-1  rounded-full cursor-pointer'
+                        src = "https://img.icons8.com/material-sharp/96/download--v1.png" alt = "download--v1" />
+                )}
 
+                {exportStatus === "generating" && (
+                    <p className='text-white text-sm'>Generating PDF...</p>
+                )}
+
+                {exportStatus === "ready" && (
+                    <button
+                    onClick={downloadChat}
+                    className='bg-green-600 text-sm cursor-pointer hover:bg-green-700 transition-all p-2 text-white rounded-lg '>
+                        Download Chat
+                    </button>
+                )}
+                
                 <div className="flex items-center space-x-2">
                     <span className="text-s font-medium text-indigo-100 ">username: {user?.username}</span>
-
-
                 </div>
 
             </header>

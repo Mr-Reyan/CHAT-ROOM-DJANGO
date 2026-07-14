@@ -11,6 +11,9 @@ export const AppProvider = ({ children }) => {
     const [users, setUsers] = useState([])
     const [notification, setNotification] = useState([])
     const [notifCount, setNotifCount] = useState(0)
+    const [exportId,setExportId] = useState(null)
+    const [exportStatus, setExportStatus] = useState('idle')
+
     const NotifSocketRef = useRef(null)
     const getUser = async ()=>{
         try{
@@ -69,14 +72,16 @@ export const AppProvider = ({ children }) => {
             value={{
                 user,
                 setUser,
-                // token,
-                // setToken,
                 users,
                 setUsers,
                 notification,
                 setNotification,
                 NotifSocketRef,
-                notifCount
+                notifCount,
+                exportId,
+                setExportId,
+                exportStatus,
+                setExportStatus
             }}
         >
             {children}

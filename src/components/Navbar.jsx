@@ -11,7 +11,7 @@ import NotificationCenter from './NotificationCenter'
 import { toast } from 'react-toastify'
 const Navbar = () => {
   const navigate = useNavigate()
-  const { user, setUser, setNotification, notification, notifCount, NotifSocketRef } = useUserContext()
+  const { user, setUser, setNotification, notification, notifCount, NotifSocketRef,setExportId,setExportStatus } = useUserContext()
   const [showNotif, setShowNotif] = useState(false)
 
 
@@ -26,21 +26,22 @@ const Navbar = () => {
       NotifSocketRef.current = notifSocket(user.id)
       NotifSocketRef.current.onmessage = (event) => {
         const data = JSON.parse(event.data)
-        toast.info(`${data.sender.username}: ${data.message}`)
-        console.log("WebSocket data:", data)
-        setNotification(prev => {
-          const updated = [...prev, data]
-          console.log("Previous:", prev)
-          console.log("Updated:", updated)
+        console.log(data);
+        
+        if (data.type === 'export_ready') {
+          setExportId(data.export_id)
+          setExportStatus('ready')
+          toast.success(data.message)
 
-          if (!Array.isArray(prev)) {
-            return [data]
-          }
+        } else {
 
-          return updated
-        });
-
-      };
+          toast.info(`${data.sender.username}: ${data.message.content}`)
+          setNotification(prev => {
+            const updated = [data, ...prev]
+            return updated
+          })
+        }
+      }
     }
 
     initializeNotif()
@@ -71,7 +72,7 @@ const Navbar = () => {
           <div className='relative'>
             <div className='flex items-center gap-5 justify-center'>
               <div className='relative'>
-                <p className='p-2.5  text-[12px] rounded-full left-5 top-1 cursor-pointer absolute bg-indigo-600 h-3 w-3 text-white flex items-center justify-center  '>{notifCount>9?('9+'):(notifCount) || '0'}</p>
+                <p className='p-2.5  text-[12px] rounded-full left-5 top-1 cursor-pointer absolute bg-indigo-600 h-3 w-3 text-white flex items-center justify-center  '>{notifCount > 9 ? ('9+') : (notifCount) || '0'}</p>
                 {showNotif ? (
                   <img
                     onClick={() => setShowNotif(false)}

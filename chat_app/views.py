@@ -1,52 +1,59 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from .models import  Conversation, ConversationParticipant, Message, Notification
+from .models import  Conversation, ConversationParticipant, Message, Notification, ChatExport
 from .serializers import  SignUpSerializer, UserSerializer, ConversationSerializer,SimpleUserSerializer, ParticipantSerializer, MessageSerializer, NotificationSerializer
 from django.contrib.auth.models import User
 from .pagination import UserPagination
 from django.shortcuts import get_object_or_404
-from django.db.models import Q
-from django.shortcuts import render
 
 
+from django.http import FileResponse
+import io
+from reportlab.pdfgen import canvas
+from reportlab.lib.units import inch
+from reportlab.lib.pagesizes import letter
 
+from .tasks import generate_chat_pdf
 
-def chat_room(request, room_name):
-    users = User.objects.exclude(id=request.user.id) 
-    chats = Message.objects.filter(
-        (Q(sender=request.user) & Q(receiver__username=room_name)) |
-        (Q(receiver=request.user) & Q(sender__username=room_name))
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def generate_chat(request,conv_id):
+    conversation = get_object_or_404(Conversation,id=conv_id,participants__user=request.user)
+    export = ChatExport.objects.create(
+    conversation=conversation,
+    user=request.user
     )
 
+    generate_chat_pdf.delay(export.id)
+    print("Generatingaafae")
+    return Response({
+    "export_id": export.id,
+    "status": "PENDING"
+}, status=202)  
 
-    chats = chats.order_by('timestamp') 
-    user_last_messages = []
 
-    for user in users:
-        last_message = Message.objects.filter(
-            (Q(sender=request.user) & Q(receiver=user)) |
-            (Q(receiver=request.user) & Q(sender=user))
-        ).order_by('-timestamp').first()
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def download_chat(request, export_id):
 
-        user_last_messages.append({
-            'user': user,
-            'last_message': last_message
-        })
-
-    # Sort user_last_messages by the timestamp of the last_message in descending order
-    user_last_messages.sort(
-        key=lambda x: x['last_message'].timestamp if x['last_message'] else None,
-        reverse=True
+    export = get_object_or_404(
+        ChatExport,
+        id=export_id,
+        user=request.user
     )
 
-    return render(request, 'chat.html', {
-        'room_name': room_name,
-        'chats': chats,
-        'users': users,
-        'user_last_messages': user_last_messages
-    })
+    if export.status != "COMPLETED":
+        return Response(
+            {"message": "PDF is still being generated."},
+            status=400
+        )
 
+    return FileResponse(
+        export.pdf.open("rb"),
+        as_attachment=True,
+        filename=export.pdf.name.split("/")[-1]
+    )
 
 
 
@@ -216,3 +223,39 @@ def get_notifications(request,user_id):
         return Response(serializer.data,status=200)
     
     return Response({"message":"No Notifications Yet!"},status=200)
+
+
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated])
+def mark_as_read(request, message_id):
+    notif = get_object_or_404(
+        Notification,
+        message_id=message_id,
+        receiver=request.user
+    )
+
+    message = notif.message
+
+    if not message.is_read:
+        message.is_read = True
+        message.save(update_fields=["is_read"])
+
+    if not notif.is_read:
+        notif.is_read = True
+        notif.save(update_fields=["is_read"])
+
+    return Response(
+        {"message": "Notification has been marked as read!"},
+        status=200
+    )
+
+
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated])
+def mark_as_unread(request,notif_id):
+    notif = get_object_or_404(Notification,id=notif_id,receiver=request.user)
+    if notif:
+        notif.is_read = False
+        notif.save()
+        return Response({"message":"Notification has been urread!"},status=200)
+    return Response({"error":"no notification with this ID!"},status=404)

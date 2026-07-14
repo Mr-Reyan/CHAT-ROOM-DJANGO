@@ -49,6 +49,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
             sender=self.user,
             content=content
         )
+        notification = await sync_to_async(Notification.objects.create)(
+            sender=self.user,
+            receiver=receiver.user,
+            message=message
+        )
+
         await self.channel_layer.group_send(
             self.room_group_name,
             {
@@ -62,6 +68,31 @@ class ChatConsumer(AsyncWebsocketConsumer):
             }
         )
 
+        await self.channel_layer.group_send(
+            f"notification_{receiver.user.id}",
+            {
+                "type": "notification",
+
+                "notification_id": notification.id,
+
+                "conversation_id": str(conversation.id),
+
+                "message": {
+                    'id':message.id,
+                    'content':message.content
+                },
+
+
+                "sender": {
+                    "id": self.user.id,
+                    "username": self.user.username
+                },
+
+                "created_at": message.created_at.strftime("%Y-%m-%d %H:%M:%S")
+            }
+            
+        )
+
     async def chat_message(self, event):
 
         await self.send(text_data=json.dumps({
@@ -73,9 +104,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
 
 class NotificationConsumer(AsyncWebsocketConsumer):
+
     async def connect(self):
-        self.user_id = self.scope['url_route']['kwargs']['user_id']
-        self.room_group_name = f'notification_{self.user_id}'
+        self.user_id = self.scope["url_route"]["kwargs"]["user_id"]
+        self.room_group_name = f"notification_{self.user_id}"
+        print("Joining group:", self.room_group_name)
 
         await self.channel_layer.group_add(
             self.room_group_name,
@@ -84,48 +117,26 @@ class NotificationConsumer(AsyncWebsocketConsumer):
 
         await self.accept()
 
-    async def disconnect(self,closecode):
-        await self.channel_layer.group_discard(self.room_group_name,self.channel_name)
-    
-    async def receive(self,text_data):
-        data = json.loads(text_data)
-        sender = await sync_to_async(User.objects.get)(id=data['sender_id'])
-        conversation = await sync_to_async(Conversation.objects.get)(
-            id=data['conv_id']
+    async def disconnect(self, close_code):
+        print("NotificationConsumer DISCONNECT:", close_code)
+        await self.channel_layer.group_discard(
+            self.room_group_name,
+            self.channel_name
         )
-        participant = await sync_to_async(
-            ConversationParticipant.objects.exclude(user_id=sender.id).get)(
-                conversation=conversation
-        )
-        
-        receiver = await sync_to_async(lambda:participant.user)()
 
-        notification = await sync_to_async(
-        Notification.objects.create
-        )(sender=sender,
-            receiver = receiver,
-            message=data['message'])
-        
-        await self.channel_layer.group_send(
-            f"notification_{receiver.id}",
-            {
-                'type':'notification',
-                'content':notification.message,
-                'receiver':receiver.id,
-                'sender':{
-                    'id':sender.id,
-                    'username':sender.username
-                },
-                'id':notification.id,
-                'created_at':notification.created_at.strftime("%Y-%m-%d %H:%M:%S")  
-            }
-        )
-    
-    async def notification(self,event):
+    async def notification(self, event):
         await self.send(text_data=json.dumps({
-            'message': event['content'],
-            'receiver':event['receiver'],
-            'sender':event['sender'],
-            'id':event['id'],
-            'created_at':event['created_at']
+            "id": event["notification_id"],
+            "conv_id": event["conversation_id"],
+            "message": event["message"],
+            "sender": event["sender"],
+            "created_at": event["created_at"]
+        }))
+    
+    async def chat_export_ready(self, event):
+        print("Consumer received:", event)
+        await self.send(text_data=json.dumps({
+            "type": "export_ready",
+            "export_id": event["export_id"],
+            'message':event['message']
         }))

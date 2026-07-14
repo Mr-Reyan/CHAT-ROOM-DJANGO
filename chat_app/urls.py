@@ -10,9 +10,6 @@ urlpatterns = [
     path('current_user/',views.current_user),
     path("all_users/", views.get_all_users),
 
-    # path('get_messages/', views.get_text),
-    # path('send_text/', views.send_text),
-
     path('conversations/',views.get_my_conversations),
 
     path('conversations/create-personal/<int:user_id>/',views.create_personal_chat),
@@ -20,5 +17,15 @@ urlpatterns = [
     path('conversations/send_direct_message/<uuid:conv_id>/',views.send_direct_message),
     path('conversations/get_direct_message/<uuid:conv_id>/',views.get_direct_message),
 
-    path('notifications/<int:user_id>/',views.get_notifications)
+    path('notifications/<int:user_id>/',views.get_notifications),
+
+    path('notifications/mark_as_read/<int:message_id>/',views.mark_as_read),
+    path('notifications/mark_as_unread/<int:notif_id>/',views.mark_as_unread),
+
+
+    path('chat/<uuid:conv_id>/pdf/',views.generate_chat),
+    path('chat/export/<int:export_id>/pdf/',views.download_chat)
+
+
+
 ]

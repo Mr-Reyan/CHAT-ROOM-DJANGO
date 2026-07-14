@@ -27,12 +27,47 @@ class Message(models.Model):
     content = models.CharField(max_length=200)
     created_at = models.DateTimeField(auto_now_add=True)
     is_deleted = models.BooleanField(default=False)
+    is_read = models.BooleanField(default=False)
 
 
 class Notification(models.Model):
     sender = models.ForeignKey(User, on_delete=models.CASCADE,related_name="sent_notifications")
     receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name="received_notifications", null=True)
-    message = models.TextField(max_length=200)
+    # message = models.TextField(max_length=200)
+    message = models.ForeignKey(Message,on_delete=models.CASCADE,related_name='message_notifications',null=True)
     notification_type = models.TextField(max_length=100,default='messages')
     is_read= models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class ChatExport(models.Model):
+
+    STATUS_CHOICES = (
+        ("PENDING", "Pending"),
+        ("COMPLETED", "Completed"),
+        ("FAILED", "Failed"),
+    )
+
+    conversation = models.ForeignKey(
+        Conversation,
+        on_delete=models.CASCADE
+    )
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE
+    )
+
+    pdf = models.FileField(
+        upload_to="chat_exports/",
+        null=True,
+        blank=True
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="PENDING"
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)

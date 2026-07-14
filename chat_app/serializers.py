@@ -82,7 +82,7 @@ class MessageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Message
-        fields = ["id", "sender", "content", "created_at","conversation"]
+        fields = ["id", "sender", "content","is_read", "created_at","conversation"]
         
     def validate_content(self,value):
         if len(value)>200:
@@ -115,7 +115,8 @@ class NotificationSerializer(serializers.ModelSerializer):
     created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S",read_only=True)
     sender = SimpleUserSerializer()
     receiver = SimpleUserSerializer()
-
+    message = MessageSerializer()
+    conv_id = serializers.UUIDField(source='message.conversation.id',read_only=True)
     class Meta:
         model = Notification
-        fields = ['id','sender','receiver','message','notification_type','is_read','created_at']
+        fields = ['id','sender','receiver','message','conv_id','notification_type','is_read','created_at']

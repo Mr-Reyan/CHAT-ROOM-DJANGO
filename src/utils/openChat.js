@@ -54,6 +54,8 @@ export async function openChat(conv_id, setMessages) {
             }
         })
         const data = await response.json()
+        console.log(data)
+        
         setMessages(data)
         
         

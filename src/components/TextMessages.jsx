@@ -72,14 +72,33 @@ const TextMessages = ({ messages, username }) => {
                         )}
 
                         <div
-                            className={`px-4 py-2.5 rounded-2xl text-sm break-all shadow-sm ${isMe
-                                ? 'bg-indigo-600 text-white rounded-tr-none'
-                                : 'bg-white text-gray-800 border border-gray-200 rounded-tl-none'
+                            className={`${isMe?
+                                 msg.content? 'px-4 py-2.5 rounded-2xl text-sm break-all shadow-sm bg-indigo-600 text-white rounded-tr-none' : ''
+                                : msg.content? 'px-4 py-2.5 rounded-2xl text-sm break-all shadow-sm bg-white text-gray-800 border border-gray-200 rounded-tl-none':''
                                 }`}
                         >
                             {msg.content}
                         </div>
+                        {msg.files && (
+                            msg.files.map((file) => {
+                                console.log(file)
+                                return (
+                                    <div key={file.id} className='flex items-center justify-center '>
+                                        {file.file.endsWith('.png') || file.file.endsWith('.jpg') || file.file.endsWith('.jpeg')?(
 
+                                            <img src={`http://127.0.0.1:8000${file.file}`} className='w-30 h-30 object-cover shadow-md rounded-md' alt=""  />
+                                        ):(
+                                            <div>DOWNLOAD THIS FILE HERE!</div>
+                                        )}
+                                    <a  target='_blank' href={`http://127.0.0.1:8000${file.file}`}>
+                                        <img src="https://img.icons8.com/material-sharp/96/download--v1.png" className='w-6 ml-2 rounded-full hover:bg-green-600 bg-green-400 p-1' alt="" />
+                                    </a>
+                                    </div>
+                                )
+                            }
+                            )
+                        )}
+                        
                         <span className="text-[10px] text-gray-400 mt-1 px-1">
                             {msg.created_at.split(' ')[1]}
                         </span>

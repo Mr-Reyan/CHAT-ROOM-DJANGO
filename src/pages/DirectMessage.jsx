@@ -10,14 +10,14 @@ import { chatSocket } from '../utils/websocket';
 import { useLocation } from "react-router-dom";
 
 const DirectMessage = () => {
-    const { user, NotifSocketRef, exportId,exportStatus,setExportStatus } = useUserContext()
+    const { user, NotifSocketRef, exportId, exportStatus, setExportStatus } = useUserContext()
 
 
     const bottomRef = useRef(null)
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [downloading, setDownloading] = useState(false)
-
+    const [selectedFiles, setSelectedFiles] = useState(null)
     const navigate = useNavigate()
     const lastMessageId = useRef(null)
 
@@ -71,17 +71,6 @@ const DirectMessage = () => {
     }, [messages]);
 
 
-    const handleSendMessage = (e) => {
-        e.preventDefault();
-
-        socketRef.current?.send(
-            JSON.stringify({
-                message: newMessage,
-            })
-        )
-
-        setNewMessage("")
-    };
 
 
     useEffect(() => {
@@ -96,6 +85,22 @@ const DirectMessage = () => {
             });
         }
     }, [messages, messageId])
+
+
+    // const handleSendMessage = (e) => {
+    //     e.preventDefault();
+    //     if (newMessage) {
+
+    //         socketRef.current?.send(
+    //             JSON.stringify({
+    //                 message: newMessage,
+
+    //             })
+    //         )
+    //     }
+
+    //     setNewMessage("")
+    // }
 
 
     const generateChat = async () => {
@@ -158,6 +163,28 @@ const DirectMessage = () => {
     }
 
 
+    const formMessage = async (e) => {
+        e.preventDefault()
+        const formData = new FormData()
+        formData.append("text_message", newMessage)
+        if (selectedFiles) {
+            selectedFiles.forEach(file => {
+                formData.append("files", file);
+            })
+        }
+        
+        if(selectedFiles || newMessage.trimEnd())
+        await fetch(`http://127.0.0.1:8000/api/chat/${conv_id}/send/`, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${getAccessToken()}`
+            },
+            body: formData
+        })
+        setNewMessage('')
+
+    }
+
 
 
     return (
@@ -170,11 +197,11 @@ const DirectMessage = () => {
             <header className="p-4 bg-indigo-600 text-white rounded-t-lg flex justify-between items-center shadow-md">
                 <h1 className="text-xl font-bold tracking-wide">CHAT ROOM</h1>
                 {exportStatus === "idle" && (
-                    <img onClick = { generateChat }
-                        width = "25"
-                        height = "25"
-                        className = ' hover:bg-green-600 bg-green-500 p-1  rounded-full cursor-pointer'
-                        src = "https://img.icons8.com/material-sharp/96/download--v1.png" alt = "download--v1" />
+                    <img onClick={generateChat}
+                        width="25"
+                        height="25"
+                        className=' hover:bg-green-600 bg-green-500 p-1  rounded-full cursor-pointer'
+                        src="https://img.icons8.com/material-sharp/96/download--v1.png" alt="download--v1" />
                 )}
 
                 {exportStatus === "generating" && (
@@ -183,12 +210,12 @@ const DirectMessage = () => {
 
                 {exportStatus === "ready" && (
                     <button
-                    onClick={downloadChat}
-                    className='bg-green-600 text-sm cursor-pointer hover:bg-green-700 transition-all p-2 text-white rounded-lg '>
+                        onClick={downloadChat}
+                        className='bg-green-600 text-sm cursor-pointer hover:bg-green-700 transition-all p-2 text-white rounded-lg '>
                         Download Chat
                     </button>
                 )}
-                
+
                 <div className="flex items-center space-x-2">
                     <span className="text-s font-medium text-indigo-100 ">username: {user?.username}</span>
                 </div>
@@ -205,7 +232,17 @@ const DirectMessage = () => {
 
 
             <footer className="p-4 bg-white rounded-b-lg border-t border-gray-200 shadow-lg">
-                <form onSubmit={handleSendMessage} className="flex space-x-2">
+                <form onSubmit={formMessage} className="flex items-center space-x-2">
+                    <input
+                        type="file"
+                        id="filePicker"
+                        hidden multiple
+                        onChange={(e) => {
+                            setSelectedFiles(Array.from(e.target.files))
+
+                        }}
+                    />
+                    <label htmlFor='filePicker' className='text-2xl pb-1 bg-indigo-600 w-9 h-9 rounded-full flex items-center hover:bg-indigo-700 transition-all justify-center text-white'>+</label>
                     <input
                         maxLength="199"
                         type="text"
@@ -214,7 +251,7 @@ const DirectMessage = () => {
                         placeholder="Type a message..."
                         className="flex-1 px-4 py-2 bg-gray-100 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                     />
-                    <Button text="Send" />
+                    <Button text="Send" onclick={formMessage} />
 
                 </form>
             </footer>

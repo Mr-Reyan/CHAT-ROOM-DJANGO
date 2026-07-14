@@ -1,4 +1,4 @@
-from .models import  Conversation, ConversationParticipant, Message, Notification
+from .models import  Conversation, ConversationParticipant, Message, Notification, MessageFile
 from rest_framework import serializers
 from django.contrib.auth.models import User
 
@@ -74,15 +74,19 @@ class ParticipantSerializer(serializers.ModelSerializer):
         model = ConversationParticipant
         fields = ['user','joined_at']
 
-
+class MessageFileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MessageFile
+        fields = ["id", "file"]
 
 class MessageSerializer(serializers.ModelSerializer):
     created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S",read_only=True)
     sender = SimpleUserSerializer(read_only = True)
+    files = MessageFileSerializer(many=True,read_only=True)
 
     class Meta:
         model = Message
-        fields = ["id", "sender", "content","is_read", "created_at","conversation"]
+        fields = ["id", "sender", "content","is_read", "created_at","conversation",'files']
         
     def validate_content(self,value):
         if len(value)>200:

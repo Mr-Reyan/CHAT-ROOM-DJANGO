@@ -27,71 +27,72 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
 
-    async def receive(self, text_data):
-        data = json.loads(text_data)
-        content = data["message"]
-        conversation = await sync_to_async(
-            Conversation.objects.get)(
-                id=self.conversation_id
-            )
-        receiver = await sync_to_async(
-            lambda: ConversationParticipant.objects
-            .filter(conversation=conversation)
-            .exclude(user=self.user)
-            .select_related("user")
-            .first()
-        )()
+    # async def receive(self, text_data):
+    #     data = json.loads(text_data)
+    #     content = data["message"]
+    #     conversation = await sync_to_async(
+    #         Conversation.objects.get)(
+    #             id=self.conversation_id
+    #         )
+    #     receiver = await sync_to_async(
+    #         lambda: ConversationParticipant.objects
+    #         .filter(conversation=conversation)
+    #         .exclude(user=self.user)
+    #         .select_related("user")
+    #         .first()
+    #     )()
 
-        message = await sync_to_async(
-        Message.objects.create)(
-            conversation=conversation,
-            receiver=receiver.user,
-            sender=self.user,
-            content=content
-        )
-        notification = await sync_to_async(Notification.objects.create)(
-            sender=self.user,
-            receiver=receiver.user,
-            message=message
-        )
+    #     message = await sync_to_async(
+    #     Message.objects.create)(
+    #         conversation=conversation,
+    #         receiver=receiver.user,
+    #         sender=self.user,
+    #         content=content
+    #     )
 
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                'type':'chat_message',
-                'content':message.content,
-                'sender':{
-                    'username':self.user.username,
-                },
-                'created_at':message.created_at.strftime("%Y-%m-%d %H:%M:%S"),
-                'msg_id':message.id
-            }
-        )
+    #     notification = await sync_to_async(Notification.objects.create)(
+    #         sender=self.user,
+    #         receiver=receiver.user,
+    #         message=message
+    #     )
 
-        await self.channel_layer.group_send(
-            f"notification_{receiver.user.id}",
-            {
-                "type": "notification",
+    #     await self.channel_layer.group_send(
+    #         self.room_group_name,
+    #         {
+    #             'type':'chat_message',
+    #             'content':message.content,
+    #             'sender':{
+    #                 'username':self.user.username,
+    #             },
+    #             'created_at':message.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+    #             'msg_id':message.id
+    #         }
+    #     )
 
-                "notification_id": notification.id,
+    #     await self.channel_layer.group_send(
+    #         f"notification_{receiver.user.id}",
+    #         {
+    #             "type": "notification",
 
-                "conversation_id": str(conversation.id),
+    #             "notification_id": notification.id,
 
-                "message": {
-                    'id':message.id,
-                    'content':message.content
-                },
+    #             "conversation_id": str(conversation.id),
+
+    #             "message": {
+    #                 'id':message.id,
+    #                 'content':message.content
+    #             },
 
 
-                "sender": {
-                    "id": self.user.id,
-                    "username": self.user.username
-                },
+    #             "sender": {
+    #                 "id": self.user.id,
+    #                 "username": self.user.username
+    #             },
 
-                "created_at": message.created_at.strftime("%Y-%m-%d %H:%M:%S")
-            }
+    #             "created_at": message.created_at.strftime("%Y-%m-%d %H:%M:%S")
+    #         }
             
-        )
+    #     )
 
     async def chat_message(self, event):
 
@@ -99,7 +100,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'sender': event['sender'],
             'content': event['content'],
             'created_at':event['created_at'],
-            'id':event['msg_id']
+            'id':event['msg_id'],
+            'files':event['files']
         }))
 
 

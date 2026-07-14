@@ -1,7 +1,7 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView 
 from . import views 
-
+from django.contrib.auth import views as auth_views
 urlpatterns = [
     path('signup/', views.signup_view),
     path('login/', TokenObtainPairView.as_view()),
@@ -14,7 +14,6 @@ urlpatterns = [
 
     path('conversations/create-personal/<int:user_id>/',views.create_personal_chat),
 
-    path('conversations/send_direct_message/<uuid:conv_id>/',views.send_direct_message),
     path('conversations/get_direct_message/<uuid:conv_id>/',views.get_direct_message),
 
     path('notifications/<int:user_id>/',views.get_notifications),
@@ -23,9 +22,13 @@ urlpatterns = [
     path('notifications/mark_as_unread/<int:notif_id>/',views.mark_as_unread),
 
 
+    path('chat/<uuid:conv_id>/send/',views.send_direct_message),
     path('chat/<uuid:conv_id>/pdf/',views.generate_chat),
-    path('chat/export/<int:export_id>/pdf/',views.download_chat)
+    path('chat/export/<int:export_id>/pdf/',views.download_chat),
 
-
+    path('password_reset/',auth_views.PasswordResetView.as_view()),
+    path('password_reset_done/',auth_views.PasswordResetDoneView.as_view()),
+    path('password_reset_confirm/<uidb64>/<token>',auth_views.PasswordResetConfirmView.as_view()),
+    path('password_reset_complete',auth_views.PasswordResetCompleteView.as_view()),
 
 ]

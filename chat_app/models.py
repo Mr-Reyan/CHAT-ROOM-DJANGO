@@ -24,11 +24,14 @@ class Message(models.Model):
     conversation = models.ForeignKey(Conversation,on_delete=models.CASCADE,related_name="messages")
     receiver = models.ForeignKey(User,related_name="received_messages",on_delete=models.CASCADE,null=True)
     sender = models.ForeignKey(User,on_delete=models.CASCADE,related_name="sent_messages")
-    content = models.CharField(max_length=200)
+    content = models.CharField(max_length=200,blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     is_deleted = models.BooleanField(default=False)
     is_read = models.BooleanField(default=False)
 
+class MessageFile(models.Model):
+    message = models.ForeignKey(Message,on_delete=models.CASCADE,related_name='files')
+    file = models.FileField(upload_to='chat_files/')
 
 class Notification(models.Model):
     sender = models.ForeignKey(User, on_delete=models.CASCADE,related_name="sent_notifications")

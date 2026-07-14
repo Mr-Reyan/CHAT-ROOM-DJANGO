@@ -1,20 +1,20 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from .models import  Conversation, ConversationParticipant, Message, Notification, ChatExport
+from .models import  Conversation, ConversationParticipant, Message, Notification, ChatExport, MessageFile
 from .serializers import  SignUpSerializer, UserSerializer, ConversationSerializer,SimpleUserSerializer, ParticipantSerializer, MessageSerializer, NotificationSerializer
 from django.contrib.auth.models import User
 from .pagination import UserPagination
 from django.shortcuts import get_object_or_404
-
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 from django.http import FileResponse
-import io
-from reportlab.pdfgen import canvas
-from reportlab.lib.units import inch
-from reportlab.lib.pagesizes import letter
 
 from .tasks import generate_chat_pdf
+
+
+channel_layer = get_channel_layer()
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
@@ -82,32 +82,6 @@ def current_user(request):
 
 
 
-# @api_view(["POST"])
-# @permission_classes([IsAuthenticated])
-# def send_text(request):
-
-#     # if not (request.data["sent_to"]):
-#     serializer = ChatMessageSerializer(data=request.data)
-#     if serializer.is_valid():
-#         serializer.save()
-#         return Response(serializer.data, status=201)
-    
-    
-#     return Response(serializer.errors,status=400)
-
-
-
-# @api_view(["GET"])
-# @permission_classes([IsAuthenticated])
-# def get_text(request):
-#     messages = ChatMessage.objects.all().order_by('timestamp')
-
-#     if not messages.exists():
-#         return Response({"info":"No text messages yet"},status=200)
-    
-#     serializer = ChatMessageSerializer(messages,many=True)
-#     return Response(serializer.data,status=200)
-    
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
@@ -116,18 +90,88 @@ def send_direct_message(request,conv_id):
     Conversation.objects.filter(participants__user=request.user),
     id=conv_id
     ) 
+
+    receiver = ConversationParticipant.objects.filter(
+        conversation=conversation
+        ).exclude(
+        user=request.user
+        ).select_related(
+        "user"
+        ).first()
+    content = request.data.get("text_message", "").strip()
+    files = request.FILES.getlist("files")
     
+    if not content and not files:
+        return Response(
+            {"error": "Message or file is required."},
+            status=400
+        )
+    message = Message.objects.create(
+        conversation=conversation,
+        sender=request.user,
+        receiver=receiver.user,   
+        content=content,
+    )
+    for file in files:
+        MessageFile.objects.create(
+            message=message,
+            file = file
+        )
+        
+    async_to_sync(channel_layer.group_send)(
+        f'chat_{conversation.id}',
+        
+        {
+            'type':'chat_message',
+            'content':message.content,
+            'sender':{
+                'username':request.user.username,
+            },
+            'created_at':message.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+            'msg_id':message.id,
+            'files':[
+                {
+                    'id':file.id,
+                    'file':file.file.url
+                }
+                for file in message.files.all()
+            ]
+        }
+        
+    )
 
-    serializer = MessageSerializer(data={
-        "conversation":conversation.id,
-        "content": request.data["text_message"]
-    })
+    notification =  Notification.objects.create(
+            sender=request.user,
+            receiver=receiver.user,
+            message=message
+        )
+    
+    async_to_sync(channel_layer.group_send)(
+        f'notification_{receiver.user.id}',
+        {
+            "type": "notification",
 
-    if serializer.is_valid():
-        serializer.save(sender=request.user,conversation=conversation)
-        return Response(serializer.data,status=201)
+                "notification_id": notification.id,
 
-    return Response(serializer.errors,status=400)
+                "conversation_id": str(conversation.id),
+
+                "message": {
+                    'id':message.id,
+                    'content':message.content
+                },
+
+
+                "sender": {
+                    "id": request.user.id,
+                    "username": request.user.username
+                },
+
+                "created_at": message.created_at.strftime("%Y-%m-%d %H:%M:%S")
+        }
+    )
+
+    serializer = MessageSerializer(message)
+    return Response(serializer.data, status=201)
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])

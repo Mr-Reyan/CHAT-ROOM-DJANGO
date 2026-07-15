@@ -1,12 +1,30 @@
 import React, { createElement, useEffect, useRef } from 'react';
 import { getAccessToken } from '../utils/auth'
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Download, FileText } from "lucide-react";
+import { DownloadIcon, FileTextIcon } from "lucide-react"
+import {
+    Attachment,
+    AttachmentAction,
+    AttachmentActions,
+    AttachmentContent,
+    AttachmentDescription,
+    AttachmentMedia,
+    AttachmentTitle,
+} from "@/components/ui/attachment"
+import { Bubble, BubbleContent } from "@/components/ui/bubble"
+import { Message, MessageContent } from "@/components/ui/message"
+import { useUserContext } from '@/context/UserContext';
+
+
 
 const TextMessages = ({ messages, username }) => {
     const observer = useRef(null);
-
-    const downloadFile = async (url,filename)=>{
+    const {setNotifCount} = useUserContext()
+    const downloadFile = async (url, filename) => {
         const response = await fetch(url)
-        if(!response.ok){
+        if (!response.ok) {
             throw new Error("Failed to Download File")
         }
         const blob = await response.blob()
@@ -33,8 +51,7 @@ const TextMessages = ({ messages, username }) => {
                 }
             })
             const data = await response.json()
-            console.log(data);
-
+            setNotifCount(prev=>prev-1)
         } catch (error) {
             console.error(error);
 
@@ -64,72 +81,125 @@ const TextMessages = ({ messages, username }) => {
     }, [])
 
     return (
-        <div>
+        <div className="space-y-5">
             {messages.map((msg) => {
-                const isMe = msg.sender.username == username
+                const isMe = msg.sender.username === username;
 
                 return (
                     <div
+                        key={msg.id}
+                        id={`message-${msg.id}`}
                         data-message-id={msg.id}
                         ref={(element) => {
                             if (element && observer.current && !isMe && !msg.is_read) {
                                 observer.current.observe(element);
                             }
                         }}
-                        id={`message-${msg.id}`}
-                        key={msg.id}
-
-                        className={`flex flex-col max-w-[75%] ${isMe ? 'ml-auto items-end' : 'mr-auto items-start'}`}
+                        className={`flex ${isMe ? "justify-end" : "justify-start"
+                            }`}
                     >
-
-                        {!isMe && (
-                            <span className="text-xs text-gray-500 font-semibold mb-0.5 ml-1">
-                                {msg.sender.username}
-                            </span>
-                        )}
-
                         <div
-                            className={`${isMe?
-                                 msg.content? 'px-4 py-2.5 rounded-2xl text-sm break-all shadow-sm bg-indigo-600 text-white rounded-tr-none' : ''
-                                : msg.content? 'px-4 py-2.5 rounded-2xl text-sm break-all shadow-sm bg-white text-gray-800 border border-gray-200 rounded-tl-none':''
+                            className={`flex max-w-[75%] gap-3 ${isMe ? "flex-row-reverse" : ""
                                 }`}
                         >
-                            {msg.content}
-                        </div>
-                        {msg.files && (
-                            msg.files.map((file) => {
-                                console.log(file)
-                                return (
-                                    <div key={file.id} className='flex items-center justify-center '>
-                                        {file.file.endsWith('.png') || file.file.endsWith('.jpg') || file.file.endsWith('.jpeg')?(
+                            {!isMe && (
+                                <Avatar className="h-9 w-9">
+                                    <AvatarFallback>
+                                        {msg.sender.username[0].toUpperCase()}
+                                    </AvatarFallback>
+                                </Avatar>
+                            )}
 
-                                            <img src={`http://127.0.0.1:8000${file.file}`} className='w-30 h-30 object-cover shadow-md rounded-md' alt=""  />
-                                        ):(
-                                            <div>DOWNLOAD THIS FILE HERE!</div>
-                                        )}
-                                    <button
-                                    onClick={()=>{
-                                        downloadFile(
-                                        msg.files.file,
-                                        msg.files[0].file.split('/').pop() 
-                                    )}}
+                            <div>
+                                {!isMe && (
+                                    <p className="mb-1 text-xs font-semibold text-muted-foreground">
+                                        {msg.sender.username}
+                                    </p>
+                                )}
+
+                                {msg.content && (
+                                    <div
+                                        className={`rounded-2xl px-4 py-3 shadow-sm break-all ${isMe
+                                            ? "rounded-br-md bg-primary text-primary-foreground"
+                                            : "rounded-bl-md border bg-background"
+                                            }`}
                                     >
-                                        <img src="https://img.icons8.com/material-sharp/96/download--v1.png" className='w-6 ml-2 rounded-full hover:bg-green-600 bg-green-400 p-1' alt="" />
-                                    </button>
+                                        {msg.content}
                                     </div>
-                                )
-                            }
-                            )
-                        )}
-                        
-                        <span className="text-[10px] text-gray-400 mt-1 px-1">
-                            {msg.created_at.split(' ')[1]}
-                        </span>
+                                )}
+
+                                {msg.files &&
+                                    msg.files.map((file) => {
+                                        const isImage = /\.(png|jpg|jpeg|gif|webp)$/i.test(file.file);
+
+                                        return (
+                                            <div key={file.id} className="mt-2">
+                                                {isImage ? (
+                                                    <div className="relative w-fit">
+                                                        <img
+                                                            src={`http://127.0.0.1:8000${file.file}`}
+                                                            alt=""
+                                                            className="h-28 w-28 rounded-xl border object-cover shadow-sm"
+                                                        />
+
+                                                        <Button
+                                                            size="icon"
+                                                            variant="secondary"
+                                                            className="absolute cursor-pointer bottom-2 right-2 h-8 w-8 rounded-full"
+                                                            onClick={() =>
+                                                                downloadFile(
+                                                                    `http://127.0.0.1:8000${file.file}`,
+                                                                    file.file.split("/").pop()
+                                                                )
+                                                            }
+                                                        >
+                                                            <Download className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex w-72 items-center justify-between rounded-xl border bg-muted p-3 shadow-sm">
+                                                        <div className="flex items-center gap-3 overflow-hidden">
+                                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                                                                <FileText className="h-5 w-5 text-primary" />
+                                                            </div>
+
+                                                            <span className="truncate text-sm font-medium">
+                                                                {file.file.split("/").pop()}
+                                                            </span>
+                                                        </div>
+
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="cursor-pointer hover:bg-gray-200 rounded-full"
+                                                            onClick={() =>
+                                                                downloadFile(
+                                                                    `http://127.0.0.1:8000${file.file}`,
+                                                                    file.file.split("/").pop()
+                                                                )
+                                                            }
+                                                        >
+                                                            <Download className="cursor-pointer h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+
+                                <p
+                                    className={`mt-1 text-xs text-muted-foreground ${isMe ? "text-right" : ""
+                                        }`}
+                                >
+                                    {msg.created_at.split(" ")[1]}
+                                </p>
+                            </div>
+                        </div>
                     </div>
-                )
+                );
             })}
         </div>
-    )
+    );
 }
 
 export default TextMessages

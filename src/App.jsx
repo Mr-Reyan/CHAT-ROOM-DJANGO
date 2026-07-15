@@ -10,6 +10,9 @@ import ForgetPass from './pages/ForgetPassword/ForgetPass';
 import PassResetSent from './pages/ForgetPassword/PassResetSent';
 import PassResetDone from './pages/ForgetPassword/PassResetDone';
 import PassResetConfirm from './pages/ForgetPassword/PassResetConfirm';
+import Home from './pages/Home';
+import Footer from './components/Footer';
+import About from './pages/About';
 
 function App() {
 
@@ -19,6 +22,9 @@ function App() {
       <Navbar />
 
       <Routes>
+        <Route path='/' element={<Home />}/>
+        <Route path='/about' element={<About />}/>
+
         <Route path="/forget-password" element={<ForgetPass />} />
         <Route path="/password-reset-sent" element={<PassResetSent />} />
         <Route path="/password-reset-done" element={<PassResetDone />} />
@@ -34,6 +40,7 @@ function App() {
           <Route path="/chat/:conv_id" element={<DirectMessage />} />
         </Route>
       </Routes>
+      <Footer/>
     </div>
   )
 }

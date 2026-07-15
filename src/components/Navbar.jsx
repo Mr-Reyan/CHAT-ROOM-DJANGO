@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import Button from './Button'
+// import Button from './Button'
 import { useNavigate } from 'react-router-dom'
 import { useUserContext } from '../context/UserContext'
 import { getAccessToken } from '../utils/auth'
@@ -9,16 +9,29 @@ import { notifSocket } from '../utils/websocket'
 import { getNotif } from '../utils/openChat'
 import NotificationCenter from './NotificationCenter'
 import { toast } from 'react-toastify'
+import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Menu, MessageCircleMore } from "lucide-react";
+import { Bell, BellDot } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+
 const Navbar = () => {
   const navigate = useNavigate()
-  const { user, setUser, setNotification, notification, notifCount, NotifSocketRef,setExportId,setExportStatus } = useUserContext()
+  const { user, setUser, setNotification, notification, notifCount, NotifSocketRef, setExportId, setExportStatus } = useUserContext()
   const [showNotif, setShowNotif] = useState(false)
+  const [open, setOpen] = useState(false)
 
 
 
-
+  
 
   useEffect(() => {
+    
     if (!user) return
 
     const initializeNotif = async () => {
@@ -26,30 +39,34 @@ const Navbar = () => {
       NotifSocketRef.current = notifSocket(user.id)
       NotifSocketRef.current.onmessage = (event) => {
         const data = JSON.parse(event.data)
-        console.log(data);
-        
+
         if (data.type === 'export_ready') {
           setExportId(data.export_id)
           setExportStatus('ready')
           toast.success(data.message)
 
         } else {
+          
+          let currentConvId = window.location.href.split("?")[0].split("/")[4]
+          
+          if(data.conv_id != currentConvId){
+            toast.info(`${data.sender.username}: ${data.message.content}`)
+          }
+          
 
-          toast.info(`${data.sender.username}: ${data.message.content}`)
-          setNotification(prev => {
-            const updated = [data, ...prev]
-            return updated
-          })
+          setNotification(prev => [data, ...(prev || [])])
+
         }
       }
-    }
 
+      
+      return () => {
+        NotifSocketRef.current?.close()
+        NotifSocketRef.current = null
+      }
+      
+    }
     initializeNotif()
-    return () => {
-      NotifSocketRef.current?.close()
-      NotifSocketRef.current = null
-    }
-
   }, [user])
 
 
@@ -63,43 +80,140 @@ const Navbar = () => {
 
 
   return (
-    <nav className="bg-white shadow-md">
-      <div className="sticky top-0 w-screen z-10  mx-auto justify-between px-6 py-4 flex items-center ">
-        <a href='/all-users' className="text-2xl font-bold text-blue-600">
-          Chat Room
+
+    <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-8">
+        {/* Logo */}
+        <a onClick={() => navigate('/')} className="cursor-pointer flex items-center gap-2">
+          <MessageCircleMore className="h-7 w-7 text-primary" />
+          <span className="text-xl font-bold">ChatSphere</span>
         </a>
-        {user ? (
-          <div className='relative'>
-            <div className='flex items-center gap-5 justify-center'>
-              <div className='relative'>
-                <p className='p-2.5  text-[12px] rounded-full left-5 top-1 cursor-pointer absolute bg-indigo-600 h-3 w-3 text-white flex items-center justify-center  '>{notifCount > 9 ? ('9+') : (notifCount) || '0'}</p>
-                {showNotif ? (
-                  <img
-                    onClick={() => setShowNotif(false)}
-                    src={notif_2}
-                    className='w-10 hover:bg-gray-100 p-2 cursor-pointer rounded-full' />
-                ) : (
-                  <img
-                    onClick={() => setShowNotif(true)}
-                    src={notif_1}
-                    className='w-10 hover:bg-gray-100 p-2 cursor-pointer rounded-full' />
+
+        {/* Desktop Navigation */}
+        <nav className="hidden items-center gap-8 md:flex">
+          <a onClick={() => navigate('/all-users')} className="cursor-pointer hover:underline">
+            All Users
+          </a>
+
+          <a onClick={() => navigate('/about')} className="cursor-pointer hover:underline">
+            About
+          </a>
+
+          {/* <a href="#contact" className="hover:text-primary">
+            Contact
+          </a> */}
+        </nav>
+
+        {/* Desktop Buttons */}
+        <div className="hidden gap-3 md:flex">
+          {user ? (
+            <div className="relative flex items-center gap-4">
+              {/* Notification Bell */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowNotif(!showNotif)}
+                  className="relative cursor-pointer rounded-full p-2 transition hover:bg-accent"
+                >
+                  {showNotif ? (
+                    <BellDot className="h-6 w-6" />
+                  ) : (
+                    <Bell className="h-6 w-6" />
+                  )}
+
+                  {notifCount > 0 && (
+                    <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-semibold text-white">
+                      {notifCount > 9 ? "9+" : notifCount}
+                    </span>
+                  )}
+                </button>
+
+                {showNotif && (
+                  <div className="absolute right-0 top-14 z-50">
+                    <NotificationCenter />
+                  </div>
                 )}
-
               </div>
-              <Button onclick={Logout} text="Logout" />
+
+              {/* User Avatar */}
+              <Avatar className="h-10 w-10 cursor-pointer">
+                {/* <AvatarImage src={user.profile_picture} /> */}
+                <AvatarFallback>
+                  {user.username?.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+
+              <Button variant="outline" onClick={Logout}>
+                Logout
+              </Button>
             </div>
+          ) : (
+            <div className="flex gap-3">
+              <Button
+                className='cursor-pointer'
+                variant="ghost"
+                onClick={() => navigate("/login")}
+              >
+                Login
+              </Button>
 
-            {showNotif && <NotificationCenter />}
-          </div>
-        ) : (
-          <div>
-            <Button onclick={() => navigate("/login")} text="Login" />
-            <Button onclick={() => navigate("/signup")} text="Signup" />
-          </div>
-        )}
+              <Button
+                className='cursor-pointer'
+                onClick={() => navigate("/signup")}>
+                Sign Up
+              </Button>
+            </div>
+          )}
+        </div>
 
+        {/* Mobile Menu */}
+        <Sheet open={open} onOpenChange={setOpen}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={() => setOpen(true)}
+          >
+            <Menu className="h-6 w-6" />
+          </Button>
+
+          <SheetContent side="right" className="w-full">
+            <div className="mt-10 flex flex-col px-5 gap-6">
+              <a
+              onClick={()=>navigate('/all-users')}
+              className="text-lg font-medium hover:underline"
+              >
+                Users
+              </a>
+
+              <a
+                onClick={()=>navigate('/about')}
+                className="text-lg font-medium hover:underline"
+              >
+                About
+              </a>
+
+              <a
+                href="#contact"
+                className="text-lg font-medium hover:underline"
+              >
+                Contact
+              </a>
+
+              <hr />
+
+              <Button variant="outline" onClick={() => navigate("/login")} className=" w-full">
+                Login
+              </Button>
+
+              <Button onClick={() => navigate("/signup")} className="w-full">
+                Get Started
+              </Button>
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
-    </nav>
+    </header>
+
   )
 }
 

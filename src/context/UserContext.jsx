@@ -54,7 +54,7 @@ export const AppProvider = ({ children }) => {
 
     useEffect(() => {
         
-        setNotifCount(notification.length);
+        setNotifCount(notification.filter(notif=>!notif.is_read).length);
 
     }, [notification]);
 
@@ -65,6 +65,11 @@ export const AppProvider = ({ children }) => {
 
     }, [getAccessToken()])
 
+
+    const startGroup = async()=>{
+        console.log("Group made");
+        
+    }
 
 
     return (
@@ -78,6 +83,7 @@ export const AppProvider = ({ children }) => {
                 setNotification,
                 NotifSocketRef,
                 notifCount,
+                setNotifCount,
                 exportId,
                 setExportId,
                 exportStatus,

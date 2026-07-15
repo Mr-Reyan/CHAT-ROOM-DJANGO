@@ -1,59 +1,104 @@
-import React, { useState } from 'react'
-import Button from '../../components/Button';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { MessageCircleMore, Mail } from "lucide-react";
+import { toast } from "react-toastify";
+
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const ForgetPass = () => {
-    const navigate = useNavigate()
-    const [email,setEmail] = useState('')
-    const handleSubmit = async(e)=>{
-        e.preventDefault()
-        try{
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
 
-            const response = await fetch(`http://127.0.0.1:8000/api/password_reset/`,{
-                method:'POST',
-                headers:{
-                    'Content-Type':'application/json'
-                },
-                body: JSON.stringify({'email':email})
-            })
-            console.log("HEY");
-            
-            if(response.ok){
-                const data = await response.json()
-                toast.info(data.message)
-                navigate('/password-reset-sent')
-                setEmail('')
-            }
-        } catch(error){
-            console.error(error)
-            
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      const response = await fetch(
+        "http://127.0.0.1:8000/api/password_reset/",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email }),
         }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+
+        toast.info(data.message);
+        setEmail("");
+        navigate("/password-reset-sent");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Something went wrong.");
     }
+  };
 
-    return (
-        <div className='flex justify-center items-center w-screen h-screen bg-indigo-500'>
-            <form onSubmit={handleSubmit} className='flex flex-col p-16 justify-center gap-10 min-h-[40%] w-[40%] bg-white rounded-4xl'>
-                <div>
-                    <h2 className='text-3xl font-medium text-center'>Reset Password</h2>
-                </div>
-                <div className='flex flex-col justify-center '>
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-muted px-6">
+      <Card className="w-full max-w-md shadow-2xl">
+        <CardHeader className="space-y-4 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground">
+            <MessageCircleMore className="h-7 w-7" />
+          </div>
 
-                    
-                    <label htmlFor="email">Email Address</label>
-                    <input
-                        required
-                        onChange={(e)=>setEmail(e.target.value)}
-                        value={email}
-                        type="email" name="email" placeholder='Email' className="flex-1 mt-2 px-4 py-2 bg-gray-100 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 text-lg mb-2" />
+          <CardTitle className="text-3xl">
+            Reset Password
+          </CardTitle>
 
+          <CardDescription>
+            Enter your email address and we'll send you a password reset link.
+          </CardDescription>
+        </CardHeader>
 
-                    <Button text="Reset Password"  />
-                </div>
+        <CardContent>
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-6"
+          >
+            <div className="space-y-2">
+              <Label htmlFor="email">
+                Email Address
+              </Label>
 
-            </form>
-        </div>
-    )
-}
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 
-export default ForgetPass
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="pl-10"
+                  required
+                />
+              </div>
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full"
+            >
+              Send Reset Link
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default ForgetPass;

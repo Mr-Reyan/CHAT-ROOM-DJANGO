@@ -3,11 +3,21 @@ import { useUserContext } from '../context/UserContext';
 import { useNavigate, useParams } from 'react-router-dom';
 import { openChat } from '../utils/openChat';
 import TextMessages from '../components/TextMessages';
-import Button from '../components/Button';
+// import Button from '../components/Button';
 import { getAccessToken, refreshAccessToken } from '../utils/auth';
 import { toast } from 'react-toastify';
 import { chatSocket } from '../utils/websocket';
 import { useLocation } from "react-router-dom";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+    FileDown,
+    Loader2,
+    Paperclip,
+    Send,
+} from "lucide-react";
 
 const DirectMessage = () => {
     const { user, NotifSocketRef, exportId, exportStatus, setExportStatus } = useUserContext()
@@ -16,7 +26,6 @@ const DirectMessage = () => {
     const bottomRef = useRef(null)
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
-    const [downloading, setDownloading] = useState(false)
     const [selectedFiles, setSelectedFiles] = useState(null)
     const navigate = useNavigate()
     const lastMessageId = useRef(null)
@@ -87,20 +96,6 @@ const DirectMessage = () => {
     }, [messages, messageId])
 
 
-    // const handleSendMessage = (e) => {
-    //     e.preventDefault();
-    //     if (newMessage) {
-
-    //         socketRef.current?.send(
-    //             JSON.stringify({
-    //                 message: newMessage,
-
-    //             })
-    //         )
-    //     }
-
-    //     setNewMessage("")
-    // }
 
 
     const generateChat = async () => {
@@ -117,10 +112,8 @@ const DirectMessage = () => {
                 throw new Error("Failed to download PDF")
             }
 
-            setDownloading(true)
             setExportStatus('generating')
 
-            console.log(response)
 
 
         } catch (error) {
@@ -152,9 +145,7 @@ const DirectMessage = () => {
 
             window.URL.revokeObjectURL(url);
 
-            setDownloading(true)
 
-            console.log(response)
 
 
         } catch (error) {
@@ -172,92 +163,136 @@ const DirectMessage = () => {
                 formData.append("files", file);
             })
         }
-        
-        if(selectedFiles || newMessage.trimEnd())
-        await fetch(`http://127.0.0.1:8000/api/chat/${conv_id}/send/`, {
-            method: 'POST',
-            headers: {
-                Authorization: `Bearer ${getAccessToken()}`
-            },
-            body: formData
-        })
+
+        if (selectedFiles || newMessage.trimEnd())
+            await fetch(`http://127.0.0.1:8000/api/chat/${conv_id}/send/`, {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${getAccessToken()}`
+                },
+                body: formData
+            })
         setNewMessage('')
+        setSelectedFiles(null)
 
     }
 
-
-
     return (
+        <div className="mx-auto flex h-[calc(100vh-5rem)] w-full max-w-5xl flex-col overflow-hidden rounded-xl border bg-card shadow-sm">
+            {/* Header */}
+            <header className="flex items-center justify-between border-b bg-background px-6 py-4">
+                <div className="flex items-center gap-4">
+                    <Avatar>
+                        <AvatarFallback>
+                            {user?.username?.[0]?.toUpperCase()}
+                        </AvatarFallback>
+                    </Avatar>
 
-        <div className="flex flex-col h-[80%] my-auto  min-w-2xl rounded-b-lg mx-auto bg-gray-50 border-x border-gray-200">
+                    <div>
+                        <h2 className="text-lg font-semibold">
+                            Chat Room
+                        </h2>
 
-
-
-
-            <header className="p-4 bg-indigo-600 text-white rounded-t-lg flex justify-between items-center shadow-md">
-                <h1 className="text-xl font-bold tracking-wide">CHAT ROOM</h1>
-                {exportStatus === "idle" && (
-                    <img onClick={generateChat}
-                        width="25"
-                        height="25"
-                        className=' hover:bg-green-600 bg-green-500 p-1  rounded-full cursor-pointer'
-                        src="https://img.icons8.com/material-sharp/96/download--v1.png" alt="download--v1" />
-                )}
-
-                {exportStatus === "generating" && (
-                    <p className='text-white text-sm'>Generating PDF...</p>
-                )}
-
-                {exportStatus === "ready" && (
-                    <button
-                        onClick={downloadChat}
-                        className='bg-green-600 text-sm cursor-pointer hover:bg-green-700 transition-all p-2 text-white rounded-lg '>
-                        Download Chat
-                    </button>
-                )}
-
-                <div className="flex items-center space-x-2">
-                    <span className="text-s font-medium text-indigo-100 ">username: {user?.username}</span>
+                        <p className="text-sm text-muted-foreground">
+                            Logged in as {user?.username}
+                        </p>
+                    </div>
                 </div>
 
+                <div className="flex items-center gap-3">
+                    {exportStatus === "idle" && (
+                        <Button
+                            variant="outline"
+                            onClick={generateChat}
+                        >
+                            <FileDown className="mr-2 h-4 w-4" />
+                            Export PDF
+                        </Button>
+                    )}
+
+                    {exportStatus === "generating" && (
+                        <Badge
+                            variant="secondary"
+                            className="flex items-center gap-2 px-3 py-2"
+                        >
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Generating PDF...
+                        </Badge>
+                    )}
+
+                    {exportStatus === "ready" && (
+                        <Button onClick={downloadChat}>
+                            <FileDown className="mr-2 h-4 w-4" />
+                            Download PDF
+                        </Button>
+                    )}
+                </div>
             </header>
 
+            {/* Messages */}
+            <main className="flex-1 overflow-y-auto bg-muted/30 p-6">
+                <TextMessages
+                    messages={messages}
+                    username={user?.username}
+                />
 
-            <main className="flex-1  overflow-y-auto p-4 space-y-3">
-                <TextMessages messages={messages} username={user?.username} />
                 <div ref={bottomRef} />
-                <div />
             </main>
 
+            {/* Footer */}
+            <footer className="border-t bg-background p-4">
+                {selectedFiles?.length > 0 && (
+                    <div className="mb-3 flex flex-wrap gap-2">
+                        {selectedFiles.map((file, index) => (
+                            <Badge
+                                key={index}
+                                variant="secondary"
+                            >
+                                {file.name}
+                            </Badge>
+                        ))}
+                    </div>
+                )}
 
-
-            <footer className="p-4 bg-white rounded-b-lg border-t border-gray-200 shadow-lg">
-                <form onSubmit={formMessage} className="flex items-center space-x-2">
+                <form
+                    onSubmit={formMessage}
+                    className="flex items-center gap-3"
+                >
                     <input
-                        type="file"
+                        hidden
+                        multiple
                         id="filePicker"
-                        hidden multiple
-                        onChange={(e) => {
+                        type="file"
+                        
+                        onChange={(e) =>
                             setSelectedFiles(Array.from(e.target.files))
-
-                        }}
+                        }
                     />
-                    <label htmlFor='filePicker' className='text-2xl pb-1 bg-indigo-600 w-9 h-9 rounded-full flex items-center hover:bg-indigo-700 transition-all justify-center text-white'>+</label>
-                    <input
-                        maxLength="199"
-                        type="text"
+
+                        <label
+                            htmlFor="filePicker"
+                            className="cursor-pointer"
+                        >
+                            <Paperclip className="h-7 w-7 hover:bg-gray-200 p-1  " />
+                        </label>
+
+                    <Input
+                        maxLength={199}
                         value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
+                        onChange={(e) =>
+                            setNewMessage(e.target.value)
+                        }
                         placeholder="Type a message..."
-                        className="flex-1 px-4 py-2 bg-gray-100 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                     />
-                    <Button text="Send" onclick={formMessage} />
 
+                    <Button type="submit">
+                        <Send className="mr-2 h-4 w-4" />
+                        Send
+                    </Button>
                 </form>
             </footer>
         </div>
-
-    )
+    );
 }
 
 export default DirectMessage

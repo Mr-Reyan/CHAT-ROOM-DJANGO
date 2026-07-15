@@ -36,12 +36,13 @@ class MessageFile(models.Model):
 class Notification(models.Model):
     sender = models.ForeignKey(User, on_delete=models.CASCADE,related_name="sent_notifications")
     receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name="received_notifications", null=True)
-    # message = models.TextField(max_length=200)
     message = models.ForeignKey(Message,on_delete=models.CASCADE,related_name='message_notifications',null=True)
     notification_type = models.TextField(max_length=100,default='messages')
     is_read= models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        return f'Sender: {self.sender} | Receiver: {self.receiver} | message: {self.message} | created_at: {self.created_at}'
 
 class ChatExport(models.Model):
 

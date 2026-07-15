@@ -96,7 +96,7 @@ def generate_chat(request,conv_id):
     conversation=conversation,
     user=request.user
     )
-
+    print("EHTA")
     generate_chat_pdf.delay(export.id)
     print("Generatingaafae")
     return Response({

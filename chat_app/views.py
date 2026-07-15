@@ -14,7 +14,79 @@ from django.http import FileResponse
 from .tasks import generate_chat_pdf
 
 
+
 channel_layer = get_channel_layer()
+
+
+from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import send_mail
+from django.utils.http import urlsafe_base64_encode,urlsafe_base64_decode
+from django.utils.encoding import force_bytes,force_str
+
+
+
+@api_view(['POST'])
+def pass_reset(request):
+    email = request.data.get('email')
+
+    try:
+        user = User.objects.get(email=email)
+    except User.DoesNotExist:
+        return Response({
+            'message':'If the email exists, a reset link has been sent.'
+        },status=200)
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    token = default_token_generator.make_token(user)
+    print(uid)
+    print(token)
+    reset_link = (
+        f'http://localhost:5173/reset-password/{uid}/{token}'
+    )
+    send_mail(
+        subject="RESET YOUR PASSWORD",
+        message=f"Click the link below:\n\n{reset_link}",
+        from_email=None,
+        recipient_list=[user.email],
+    )
+
+    return Response({
+        'message':'Password reset email sent.'
+    },status=200)
+
+
+
+@api_view(["POST"])
+def password_reset_confirm(request):
+
+    uid = request.data.get("uid")
+    token = request.data.get("token")
+    password = request.data.get("password")
+
+    try:
+        user_id = force_str(urlsafe_base64_decode(uid))
+        user = User.objects.get(pk=user_id)
+    except Exception:
+        return Response(
+            {"error": "Invalid reset link."},
+            status=400
+        )
+
+    if not default_token_generator.check_token(user, token):
+        return Response(
+            {"error": "Invalid or expired token."},
+            status=400
+        )
+
+    user.set_password(password)
+    user.save()
+
+    return Response(
+        {"message": "Password changed successfully."},
+        status=200
+    )
+
+
+
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])

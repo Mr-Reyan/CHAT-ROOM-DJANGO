@@ -26,9 +26,8 @@ urlpatterns = [
     path('chat/<uuid:conv_id>/pdf/',views.generate_chat),
     path('chat/export/<int:export_id>/pdf/',views.download_chat),
 
-    path('password_reset/',auth_views.PasswordResetView.as_view()),
-    path('password_reset_done/',auth_views.PasswordResetDoneView.as_view()),
-    path('password_reset_confirm/<uidb64>/<token>',auth_views.PasswordResetConfirmView.as_view()),
-    path('password_reset_complete',auth_views.PasswordResetCompleteView.as_view()),
+    path('password_reset/',views.pass_reset),
+    path('password_reset_confirm/',views.password_reset_confirm),
+    path('password_reset_complete/',auth_views.PasswordResetCompleteView.as_view()),
 
 ]

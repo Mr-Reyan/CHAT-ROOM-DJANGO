@@ -81,7 +81,8 @@ export const AppProvider = ({ children }) => {
                 exportId,
                 setExportId,
                 exportStatus,
-                setExportStatus
+                setExportStatus,
+                getUser
             }}
         >
             {children}

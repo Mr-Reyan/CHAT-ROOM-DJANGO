@@ -1,8 +1,25 @@
-import React, { useEffect, useRef } from 'react';
+import React, { createElement, useEffect, useRef } from 'react';
 import { getAccessToken } from '../utils/auth'
 
 const TextMessages = ({ messages, username }) => {
     const observer = useRef(null);
+
+    const downloadFile = async (url,filename)=>{
+        const response = await fetch(url)
+        if(!response.ok){
+            throw new Error("Failed to Download File")
+        }
+        const blob = await response.blob()
+        const downloadUrl = window.URL.createObjectURL(blob)
+
+        const a = document.createElement('a')
+        a.href = downloadUrl
+        a.download = filename
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        window.URL.revokeObjectURL(downloadUrl)
+    }
 
 
 
@@ -41,7 +58,7 @@ const TextMessages = ({ messages, username }) => {
             {
                 threshold: 0.8,
             }
-        );
+        )
 
         return () => observer.current.disconnect();
     }, [])
@@ -90,9 +107,15 @@ const TextMessages = ({ messages, username }) => {
                                         ):(
                                             <div>DOWNLOAD THIS FILE HERE!</div>
                                         )}
-                                    <a  target='_blank' href={`http://127.0.0.1:8000${file.file}`}>
+                                    <button
+                                    onClick={()=>{
+                                        downloadFile(
+                                        msg.files.file,
+                                        msg.files[0].file.split('/').pop() 
+                                    )}}
+                                    >
                                         <img src="https://img.icons8.com/material-sharp/96/download--v1.png" className='w-6 ml-2 rounded-full hover:bg-green-600 bg-green-400 p-1' alt="" />
-                                    </a>
+                                    </button>
                                     </div>
                                 )
                             }

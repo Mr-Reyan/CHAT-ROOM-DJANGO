@@ -6,6 +6,10 @@ import Navbar from './components/Navbar';
 import ProtectedRoute from "./components/ProtectedRoute";
 import AllUsers from './pages/AllUsers';
 import DirectMessage from './pages/DirectMessage'
+import ForgetPass from './pages/ForgetPassword/ForgetPass';
+import PassResetSent from './pages/ForgetPassword/PassResetSent';
+import PassResetDone from './pages/ForgetPassword/PassResetDone';
+import PassResetConfirm from './pages/ForgetPassword/PassResetConfirm';
 
 function App() {
 
@@ -15,12 +19,18 @@ function App() {
       <Navbar />
 
       <Routes>
+        <Route path="/forget-password" element={<ForgetPass />} />
+        <Route path="/password-reset-sent" element={<PassResetSent />} />
+        <Route path="/password-reset-done" element={<PassResetDone />} />
+        <Route path="/reset-password/:uid/:token" element={<PassResetConfirm />} />
+
+
+
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
-        <Route path="/all-users" element={<AllUsers/>} />
 
         <Route path='/' element={<ProtectedRoute />}> 
-          {/* <Route path="/chat" element={<ChatBox />} /> */}
+        <Route path="/all-users" element={<AllUsers/>} />
           <Route path="/chat/:conv_id" element={<DirectMessage />} />
         </Route>
       </Routes>

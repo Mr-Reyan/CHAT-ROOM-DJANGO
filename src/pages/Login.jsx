@@ -7,7 +7,7 @@ import { toast } from 'react-toastify'
 const Login = () => {
     const [form, setForm] = useState({ username: "", password: "" })
     const navigate = useNavigate()
-    const { setToken } = useUserContext()
+    const { getUser } = useUserContext()
 
     const handleChange = (e) => {
         setForm({
@@ -38,6 +38,7 @@ const Login = () => {
             toast.success("Logged in successfully!")
             localStorage.setItem("access_token", data.access)
             localStorage.setItem("refresh_token", data.refresh)
+            getUser()
             navigate("/all-users")
 
         } catch (error) {
@@ -72,6 +73,7 @@ const Login = () => {
                         type="password" name="password" placeholder='Password' className="flex-1 px-4 py-2 bg-gray-100 border border-gray-300 mb-4 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 text-lg " />
 
                     <Button text="Login" />
+                    <Link to="/forget-password" className='text-center mt-2 text-indigo-500 font-medium hover:underline'>Forget password?</Link>
                     <p className='text-center mt-7'>Don't have an account? <Link to="/signup" className='text-indigo-500 font-medium hover:underline'>Signup</Link></p>
                 </div>
 

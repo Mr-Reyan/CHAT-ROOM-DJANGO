@@ -245,25 +245,30 @@ def send_direct_message(request,conv_id):
     serializer = MessageSerializer(message)
     return Response(serializer.data, status=201)
 
+
+CHAT_PAGE_SIZE = 10
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
-def get_direct_message(request,conv_id):
+def get_direct_message(request, conv_id):
     conversation = get_object_or_404(
         Conversation.objects.filter(participants__user=request.user),
         id=conv_id
     )
-    
-    if not conversation.participants.filter(user=request.user).exists():
-        return Response(
-            {"detail": "You do not have permission."},
-            status=403
-        )
 
-    messages = Message.objects.filter(conversation=conversation).order_by("created_at")
+    before = request.GET.get("before")
 
-    serializer = MessageSerializer(messages,many=True)
+    queryset = Message.objects.filter(conversation=conversation)
 
-    return Response(serializer.data,status=201)
+    if before:
+        queryset = queryset.filter(id__lt=int(before))
+
+    messages = list(
+        queryset.order_by("-created_at")[:CHAT_PAGE_SIZE]
+    )[::-1]
+
+    serializer = MessageSerializer(messages, many=True)
+
+    return Response(serializer.data)
 
 
 @api_view(['GET'])

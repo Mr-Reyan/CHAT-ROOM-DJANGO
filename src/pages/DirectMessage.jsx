@@ -3,7 +3,6 @@ import { useUserContext } from '../context/UserContext';
 import { useNavigate, useParams } from 'react-router-dom';
 import { openChat } from '../utils/openChat';
 import TextMessages from '../components/TextMessages';
-// import Button from '../components/Button';
 import { getAccessToken, refreshAccessToken } from '../utils/auth';
 import { toast } from 'react-toastify';
 import { chatSocket } from '../utils/websocket';
@@ -23,6 +22,8 @@ const DirectMessage = () => {
     const { user, NotifSocketRef, exportId, exportStatus, setExportStatus } = useUserContext()
 
 
+
+    const chatRef = useRef(null)
     const bottomRef = useRef(null)
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
@@ -30,12 +31,19 @@ const DirectMessage = () => {
     const navigate = useNavigate()
     const lastMessageId = useRef(null)
     const [conv, setConv] = useState(null)
+    let oldestMessage = null
+
+    if (messages) {
+        oldestMessage = messages[0]
+    }
+
 
     const { conv_id } = useParams()
 
     const location = useLocation()
 
     const messageId = location.state?.messageId
+
 
     const getCurrentConv = async () => {
         try {
@@ -62,7 +70,7 @@ const DirectMessage = () => {
     }
 
     const getChatName = (chat) => {
-        if(!chat) return
+        if (!chat) return
         if (chat.name?.trim()) return chat.name;
 
         return chat.participants
@@ -77,8 +85,10 @@ const DirectMessage = () => {
         if (!conv_id) return
         const initializeChat = async () => {
 
-            await openChat(conv_id, setMessages)
-
+            const olderMessages = await openChat(conv_id, oldestMessage)
+            
+            setMessages(olderMessages)
+            
             socketRef.current = chatSocket(conv_id)
 
             socketRef.current.onmessage = (event) => {
@@ -209,6 +219,24 @@ const DirectMessage = () => {
 
     }
 
+
+    const handleScroll = async() => {
+        if(chatRef.current.scrollTop == 0){
+
+            const oldHeight = chatRef.current.scrollHeight;
+            
+            const olderMessages = await openChat(conv_id, oldestMessage);
+            
+            setMessages(prev => [...olderMessages, ...prev]);
+            
+            requestAnimationFrame(() => {
+                const newHeight = chatRef.current.scrollHeight;
+                chatRef.current.scrollTop += newHeight - oldHeight;
+            });
+        }
+    }
+
+
     return (
         <div className="mx-auto flex h-[calc(100vh-5rem)] w-full max-w-5xl flex-col overflow-hidden rounded-xl border bg-card shadow-sm">
             {/* Header */}
@@ -262,8 +290,13 @@ const DirectMessage = () => {
             </header>
 
             {/* Messages */}
-            <main className="flex-1 overflow-y-auto bg-muted/30 p-6">
+            <main
+                ref={chatRef}
+                onScroll={handleScroll}
+                className="flex-1 overflow-y-auto bg-muted/30 p-6"
+            >
                 <TextMessages
+                    oldestMessage={oldestMessage}
                     messages={messages}
                     username={user?.username}
                 />

@@ -3,25 +3,15 @@ import { getAccessToken } from '../utils/auth'
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Download, FileText } from "lucide-react";
-import { DownloadIcon, FileTextIcon } from "lucide-react"
-import {
-    Attachment,
-    AttachmentAction,
-    AttachmentActions,
-    AttachmentContent,
-    AttachmentDescription,
-    AttachmentMedia,
-    AttachmentTitle,
-} from "@/components/ui/attachment"
-import { Bubble, BubbleContent } from "@/components/ui/bubble"
-import { Message, MessageContent } from "@/components/ui/message"
 import { useUserContext } from '@/context/UserContext';
+import { openChat } from '@/utils/openChat';
 
 
 
-const TextMessages = ({ messages, username }) => {
+const TextMessages = ({ messages, username, oldestMessage }) => {
     const observer = useRef(null);
-    const {setNotifCount} = useUserContext()
+
+    const { setNotifCount } = useUserContext()
     const downloadFile = async (url, filename) => {
         const response = await fetch(url)
         if (!response.ok) {
@@ -39,6 +29,8 @@ const TextMessages = ({ messages, username }) => {
         window.URL.revokeObjectURL(downloadUrl)
     }
 
+    console.log(oldestMessage);
+
 
 
     const markRead = async (message_id) => {
@@ -51,13 +43,18 @@ const TextMessages = ({ messages, username }) => {
                 }
             })
             const data = await response.json()
-            setNotifCount(prev=>prev-1)
+            setNotifCount(prev => prev - 1)
         } catch (error) {
             console.error(error);
 
         }
     }
+    useEffect(() => {
+        if (messages.length > 0) {
+            console.log(messages[messages.length - 1]);
 
+        }
+    }, [messages])
 
     useEffect(() => {
         observer.current = new IntersectionObserver(
@@ -81,7 +78,11 @@ const TextMessages = ({ messages, username }) => {
     }, [])
 
     return (
-        <div className="space-y-5">
+        <div
+            
+            className=" space-y-5"
+
+        >
             {messages.map((msg) => {
                 const isMe = msg.sender.username === username;
 

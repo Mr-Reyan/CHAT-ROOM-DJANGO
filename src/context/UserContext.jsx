@@ -15,7 +15,7 @@ export const AppProvider = ({ children }) => {
     const [makeGroup, setMakeGroup] = useState(false)
     const NotifSocketRef = useRef(null)
     const [groups,setGroups]=useState([])
-
+ 
     const getUser = async ()=>{
         try{
 

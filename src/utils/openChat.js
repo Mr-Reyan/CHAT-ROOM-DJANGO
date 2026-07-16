@@ -1,6 +1,5 @@
 import { toast } from "react-toastify";
 import { getAccessToken } from "./auth";
-import { useUserContext } from "../context/UserContext";
 
 export async function startChat(user_id, setUsers) {
     if (setUsers) {
@@ -45,19 +44,25 @@ export async function startChat(user_id, setUsers) {
     }
 }
 
-export async function openChat(conv_id, setMessages) {
+export async function openChat(conv_id, oldestMessage) {
     try {
-        const response = await fetch(`http://127.0.0.1:8000/api/conversations/get_direct_message/${conv_id}/`, {
+        let url
+        console.log(oldestMessage);
+        
+        if(oldestMessage){
+             url = `http://127.0.0.1:8000/api/conversations/get_direct_message/${conv_id}/?before=${oldestMessage.id}`
+        } else{
+             url = `http://127.0.0.1:8000/api/conversations/get_direct_message/${conv_id}/`
+        }
+        const response = await fetch(url, {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${getAccessToken()}`
             }
         })
-        const data = await response.json()
         
-        setMessages(data)
-        
-        
+        return await response.json()
+
     } catch (error) {
         toast.error("Error opening Chat!", error)
     }

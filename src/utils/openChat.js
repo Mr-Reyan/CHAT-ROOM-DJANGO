@@ -72,9 +72,11 @@ export async function getNotif(user_id,setNotification) {
                 'Authorization':`Bearer ${getAccessToken()}`
             }
         })
-        const data = await response.json()
-        
-        setNotification(data)
+        const data = await response.json()  
+        console.log(data);
+        if(!data.info){
+            setNotification(data)
+        }
     } catch(error){
         toast.error("Error getting Notifications",error)
     }

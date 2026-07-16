@@ -13,6 +13,8 @@ import PassResetConfirm from './pages/ForgetPassword/PassResetConfirm';
 import Home from './pages/Home';
 import Footer from './components/Footer';
 import About from './pages/About';
+import Groups from './pages/Groups';
+import MyChats from './pages/MyChats';
 
 function App() {
 
@@ -37,6 +39,8 @@ function App() {
 
         <Route path='/' element={<ProtectedRoute />}> 
         <Route path="/all-users" element={<AllUsers/>} />
+        <Route path="/my-chats" element={<MyChats/>} />
+        <Route path="/group-chats" element={<Groups/>} />
           <Route path="/chat/:conv_id" element={<DirectMessage />} />
         </Route>
       </Routes>

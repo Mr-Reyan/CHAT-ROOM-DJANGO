@@ -3,7 +3,6 @@ import React, { useRef } from "react";
 import { createContext, useContext, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { getAccessToken, refreshAccessToken } from "../utils/auth";
-
 const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
@@ -13,8 +12,10 @@ export const AppProvider = ({ children }) => {
     const [notifCount, setNotifCount] = useState(0)
     const [exportId,setExportId] = useState(null)
     const [exportStatus, setExportStatus] = useState('idle')
-
+    const [makeGroup, setMakeGroup] = useState(false)
     const NotifSocketRef = useRef(null)
+    const [groups,setGroups]=useState([])
+
     const getUser = async ()=>{
         try{
 
@@ -50,11 +51,15 @@ export const AppProvider = ({ children }) => {
         }
 
     }
-    const firstRender = useRef(true);
+    
+    
+    
+
 
     useEffect(() => {
-        
-        setNotifCount(notification.filter(notif=>!notif.is_read).length);
+        if(notification){
+            setNotifCount(notification.length);
+        }
 
     }, [notification]);
 
@@ -66,10 +71,6 @@ export const AppProvider = ({ children }) => {
     }, [getAccessToken()])
 
 
-    const startGroup = async()=>{
-        console.log("Group made");
-        
-    }
 
 
     return (
@@ -88,7 +89,11 @@ export const AppProvider = ({ children }) => {
                 setExportId,
                 exportStatus,
                 setExportStatus,
-                getUser
+                getUser,
+                makeGroup,
+                setMakeGroup,
+                groups,
+                setGroups,
             }}
         >
             {children}

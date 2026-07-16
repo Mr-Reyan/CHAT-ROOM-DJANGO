@@ -25,7 +25,7 @@ const NotificationCenter = () => {
   };
 
   return (
-    <Card className="w-[380px] shadow-xl">
+    <Card className="w-[250px] shadow-xl md:w-[380px]">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2">
           <Bell className="h-5 w-5" />
@@ -41,8 +41,9 @@ const NotificationCenter = () => {
       <CardContent className="p-0">
         <ScrollArea className="h-[420px]">
           {notifCount > 0 ? (
-            notification.filter((notif)=>!notif.is_read).map((notif) => {
-
+            notification.map((notif) => {
+              
+              console.log(notif)
               return (
                 <div
                   key={notif.id}

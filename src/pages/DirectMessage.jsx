@@ -29,6 +29,7 @@ const DirectMessage = () => {
     const [selectedFiles, setSelectedFiles] = useState(null)
     const navigate = useNavigate()
     const lastMessageId = useRef(null)
+    const [conv, setConv] = useState(null)
 
     const { conv_id } = useParams()
 
@@ -36,7 +37,38 @@ const DirectMessage = () => {
 
     const messageId = location.state?.messageId
 
+    const getCurrentConv = async () => {
+        try {
+            const response = await fetch('http://127.0.0.1:8000/api/conversations/get_current/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${getAccessToken()}`
+                },
+                body: JSON.stringify({
+                    'conv_id': conv_id
+                })
+            })
+            const data = await response.json()
+            if (!response.ok) {
+                toast.error("Error getting chat name!")
+            }
+            setConv(data)
+            console.log(data)
 
+        } catch (error) {
+            console.error(error)
+        }
+    }
+
+    const getChatName = (chat) => {
+        if(!chat) return
+        if (chat.name?.trim()) return chat.name;
+
+        return chat.participants
+            .map((user) => user.name)
+            .join(", ");
+    };
 
     const socketRef = useRef(null)
 
@@ -55,8 +87,8 @@ const DirectMessage = () => {
             };
         };
 
-        initializeChat();
-
+        initializeChat()
+        getCurrentConv()
         return () => {
             socketRef.current?.close()
             socketRef.current = null
@@ -190,7 +222,7 @@ const DirectMessage = () => {
 
                     <div>
                         <h2 className="text-lg font-semibold">
-                            Chat Room
+                            {getChatName(conv)}
                         </h2>
 
                         <p className="text-sm text-muted-foreground">
@@ -263,18 +295,18 @@ const DirectMessage = () => {
                         multiple
                         id="filePicker"
                         type="file"
-                        
+
                         onChange={(e) =>
                             setSelectedFiles(Array.from(e.target.files))
                         }
                     />
 
-                        <label
-                            htmlFor="filePicker"
-                            className="cursor-pointer"
-                        >
-                            <Paperclip className="h-7 w-7 hover:bg-gray-200 p-1  " />
-                        </label>
+                    <label
+                        htmlFor="filePicker"
+                        className="cursor-pointer"
+                    >
+                        <Paperclip className="h-7 w-7 hover:bg-gray-200 p-1  " />
+                    </label>
 
                     <Input
                         maxLength={199}

@@ -75,11 +75,13 @@ class ParticipantSerializer(serializers.ModelSerializer):
         fields = ['user','joined_at']
 
 class MessageFileSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = MessageFile
         fields = ["id", "file"]
 
 class MessageSerializer(serializers.ModelSerializer):
+
     created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S",read_only=True)
     sender = SimpleUserSerializer(read_only = True)
     files = MessageFileSerializer(many=True,read_only=True)
@@ -106,6 +108,8 @@ class ConversationSerializer(serializers.ModelSerializer):
             "participants",
             "last_message",
         ]
+        
+
 
     def get_last_message(self, obj):
         message = obj.messages.order_by("-created_at").first()

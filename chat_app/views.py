@@ -270,8 +270,17 @@ def get_direct_message(request,conv_id):
 @permission_classes([IsAuthenticated])
 def get_my_conversations(request):
     
-    my_convos = Conversation.objects.filter(participants__user=request.user)
+    my_convos = Conversation.objects.filter(participants__user=request.user).filter(is_group=False)
     serializer = ConversationSerializer(my_convos, many=True)
+    return Response(serializer.data,status=200)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_my_groups(request):
+    my_groups = Conversation.objects.filter(participants__user=request.user).filter(is_group=True)
+    serializer = ConversationSerializer(my_groups, many=True)
+    print(f"my groups: {my_groups}")
     return Response(serializer.data,status=200)
 
 
@@ -292,6 +301,23 @@ def get_all_users(request):
 
     return paginator.get_paginated_response(serializer.data)
 
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def get_current_conv(request):
+    conv_id = request.data.get('conv_id')
+    convo = Conversation.objects.filter(
+        id=conv_id,
+        participants__user=request.user
+    ).first()
+
+    if not convo:
+        return Response({"error": "Conversation not found"}, status=404)
+
+    serializer = ConversationSerializer(convo)
+    return Response(serializer.data,status=200)
+    
+    
 
 
 @api_view(['POST'])
@@ -327,18 +353,53 @@ def create_personal_chat(request, user_id):
 
 
         serializer = ConversationSerializer(new_convo)
-        return Response(serializer.data)
+        return Response(serializer.data,status=200)
     
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_group_chat(request):
+    user_ids = request.data.get("user_ids", [])
+    chat_name=request.data.get('group_name',[])
+
+    convo = Conversation.objects.create(is_group=True)
+
+    ConversationParticipant.objects.create(
+        conversation=convo,
+        user=request.user
+    )
+
+    usernames = [request.user.username]
+
+    for user_id in user_ids:
+        user = User.objects.get(id=user_id)
+
+        ConversationParticipant.objects.create(
+            conversation=convo,
+            user=user,
+        )
+
+        usernames.append(user.username)
+    if(not chat_name):
+        convo.name = ", ".join(usernames)
+    else:
+        convo.name = chat_name
+    convo.save()
+
+    serializer = ConversationSerializer(convo)
+    return Response(serializer.data,status=200)
+
+    
+
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_notifications(request,user_id):
-    all_notif = Notification.objects.filter(receiver=request.user).order_by('-created_at')
+    all_notif = Notification.objects.filter(receiver=request.user).filter(is_read=False).order_by('-created_at')
     if all_notif:
         serializer = NotificationSerializer(all_notif,many=True)
         return Response(serializer.data,status=200)
     
-    return Response({"message":"No Notifications Yet!"},status=200)
+    return Response({"info":"No Notifications Yet!"},status=200)
 
 
 @api_view(["PATCH"])
@@ -366,12 +427,12 @@ def mark_as_read(request, message_id):
     )
 
 
-@api_view(["PATCH"])
-@permission_classes([IsAuthenticated])
-def mark_as_unread(request,notif_id):
-    notif = get_object_or_404(Notification,id=notif_id,receiver=request.user)
-    if notif:
-        notif.is_read = False
-        notif.save()
-        return Response({"message":"Notification has been urread!"},status=200)
-    return Response({"error":"no notification with this ID!"},status=404)
+# @api_view(["PATCH"])
+# @permission_classes([IsAuthenticated])
+# def mark_as_unread(request,notif_id):
+#     notif = get_object_or_404(Notification,id=notif_id,receiver=request.user)
+#     if notif:
+#         notif.is_read = False
+#         notif.save()
+#         return Response({"message":"Notification has been urread!"},status=200)
+#     return Response({"error":"no notification with this ID!"},status=404)
